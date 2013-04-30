@@ -433,6 +433,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\log2file.h"
+				>
+			</File>
+			<File
+				RelativePath=".\registry.h"
+				>
+			</File>
+			<File
 				RelativePath=".\resourceppc.h"
 				>
 			</File>

@@ -5,6 +5,8 @@
 #include "iHookIN5.h"
 
 #include "hooks.h"
+#include "log2file.h"
+#include "registry.h"
 
 #pragma message( "Compiling " __FILE__ )
 //TEST for IN HTML5 browser
@@ -31,6 +33,18 @@ void RemoveIcon(HWND hWnd);
 void ChangeIcon(int idIcon);
 HWND getTargetSubWindow(int* iResult);
 HWND getTargetWindow();
+
+int ReadReg();	//new with v3.4.0
+//global to hold keycodes and commands assigned
+typedef struct {
+	byte keyCode;
+	TCHAR keyCmd[MAX_PATH+1];
+	TCHAR keyArg[MAX_PATH+1];
+	DWORD KeyForward;
+} hookmap;
+static hookmap kMap[10];
+int lastKey=-1;
+BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg);
 
 // Global variables can still be your...friend.
 // CIHookDlg* g_This			= NULL;			// Needed for this kludgy test app, allows callback to update the UI
@@ -126,6 +140,7 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 	static int iActOn = HC_ACTION;
 	bool processed_key=false;
 	int iResult=0;
+
 	if (nCode == iActOn) 
 	{ 
 		PKBDLLHOOKSTRUCT pkbhData = (PKBDLLHOOKSTRUCT)lParam;
@@ -145,15 +160,19 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 				if (wParam == WM_KEYUP)
 				{
 					//synthesize a WM_KEYUP
-					DEBUGMSG(1,(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
-					PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);
+					if(launchExe4Key(pkbhData->vkCode, WM_KEYUP)){
+						DEBUGMSG(1,(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
+						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);
+					}
 					processed_key=true;
 				}
 				else if (wParam == WM_KEYDOWN)
 				{
 					//synthesize a WM_KEYDOWN
-					DEBUGMSG(1,(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
-					PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
+					if(launchExe4Key(pkbhData->vkCode, WM_KEYDOWN)){
+						DEBUGMSG(1,(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
+						PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
+					}
 					processed_key=true;
 				}
 				else if (wParam == WM_CHAR)	//this will never happen
@@ -470,6 +489,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return 0;
 			break;
         case WM_CREATE:
+			ReadReg();
 			if (g_HookActivate(g_hInst))
 			{
 				MessageBeep(MB_OK);
@@ -703,4 +723,136 @@ HWND getTargetWindow(){
 	g_hWndIN5=FindWindow(L"Intermec HTML5 Browser", NULL);
 	return g_hWndIN5;	//return global var
 
+}
+
+int ReadReg()
+{
+	Add2Log(L"IN ReadReg()...\r\n", FALSE);
+	int i;
+	TCHAR str[MAX_PATH+1];
+	byte dw=0;
+	TCHAR name[MAX_PATH+1];
+	lastKey=-1;
+	LONG rc;
+	int iRes = OpenKey(L"Software\\Intermec\\iHookIN5");
+	Add2Log(L"\tOpenKey 'Software\\Intermec\\iHookIN5' returned %i (0x%x)\r\n", iRes, iRes);
+	for (i=0; i<10; i++)
+	{
+		kMap[i].keyCode=0;
+		wcscpy(kMap[i].keyCmd, L"");
+		wcscpy(kMap[i].keyArg, L"");
+		wsprintf(name, L"key%i", i);
+		//look for keyX
+		rc = RegReadByte(name, &dw);
+		if (rc==0)
+		{
+			//look for exeX
+			Add2Log(L"\tlooking for entry 'key%i' (name='%s') return code=%i read value=(0x%x)...OK\r\n", i, name, rc, dw);
+			kMap[i].keyCode=dw;
+			wsprintf(name, L"exe%i", i);
+			iRes=RegReadStr(name, str);
+			Add2Log(L"\t\tlooking for exe%i (name='%s'), result=%i, value='%s'\r\n", i, name, iRes, str);
+			if(iRes==0)
+			{
+				wcscpy(kMap[i].keyCmd, str);
+				//look for argX
+				wsprintf(name, L"arg%i", i);
+				iRes=RegReadStr(name, str);
+				lastKey=i;	// a valid combination is a keyX and a cmdX entry
+				if(iRes==0)
+				{
+					Add2Log(L"\t\tlooking for arg%i (name='%s'), result=%i, value='%s' OK\r\n", i, name, iRes, str);
+					wcscpy(kMap[i].keyArg, str);
+				}
+				else
+				{
+					Add2Log(L"\t\tlooking for arg%i (name='%s') result=%i FAILED. Using empty arg.\r\n", i, name, iRes);
+				}
+				wsprintf(name, L"forwardKey%i", i);
+				DWORD dwVal=0;
+				iRes = RegReadDword(name, &dwVal);
+				if(iRes==0)
+				{
+					Add2Log(L"\t\tlooking for forwardKey%i (name='%s'), result=%i, value=%i OK\r\n", i, name, iRes, dwVal);
+				}
+				else
+					Add2Log(L"\t\tlooking for forwardKey%i (name='%s'), result=%i FAILED, value=%i OK\r\n", i, name, iRes, dwVal);
+				kMap[i].KeyForward=dwVal;
+			}
+			else {
+				Add2Log(L"\t\tlooking for exe%i FAILED with result=%i\r\n", i, iRes);
+				break; //no exe name
+			}
+		}
+		else
+		{
+			#ifdef DEBUG
+						ShowError(rc);
+			#endif
+			Add2Log(L"\tlooking for entry 'key%i' (name='%s') return code=%i...FAILED\r\n", i, name, rc);
+			break; //no key
+		}
+	}
+	Add2Log(L"\tread a total of %i (0x%x) valid entries\r\n", lastKey+1, lastKey+1);
+	//Read if we have to forward the keys
+	rc=RegReadByte(L"ForwardKey", &dw);
+	if(rc==0)
+	{
+		Add2Log(L"\tlooking for 'ForwardKey' OK\r\n",lastKey,lastKey);
+		if (dw>0){
+			Add2Log(L"\tForwardKey is TRUE \r\n", FALSE);
+			bForwardKey=true;
+		}
+		else{
+			Add2Log(L"\tForwardKey is FALSE \r\n", FALSE);
+			bForwardKey=false;
+		}
+	}
+	else
+	{
+		#ifdef DEBUG
+			ShowError(rc);
+		#endif
+		Add2Log(L"\tlooking for 'ForwardKey' FAILED. Using default=TRUE.\r\n", FALSE);
+		bForwardKey=true;
+	}
+	CloseKey();
+	Add2Log(L"OUT ReadReg()...\r\n", FALSE);
+	return 0;
+}
+
+//check if exe is to launch for key
+//return TRUE if key should be forwarded
+BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg){
+	PROCESS_INFORMATION pi;
+	int i=0;
+	DEBUGMSG(1, (L"# hook got 0x%02x (%i). Looking for match...\r\n", vkCode, vkCode));
+	BOOL bMatchFound=FALSE;
+	for (i=0; i<=lastKey; i++) 
+	{
+		if (vkCode == kMap[i].keyCode)
+		{
+			bMatchFound=TRUE;
+			DEBUGMSG(1, (L"# hook Catched key 0x%0x, launching '%s'\n", kMap[i].keyCode, kMap[i].keyCmd));
+			Add2Log(L"# hook Matched key 0x%0x, launching '%s'\n", kMap[i].keyCode, kMap[i].keyCmd);
+			if(wmMsg != WM_KEYUP)	//only process keyup msg
+			{
+				if (CreateProcess(kMap[i].keyCmd, kMap[i].keyArg, NULL, NULL, NULL, 0, NULL, NULL, NULL, &pi))
+				{
+					DEBUGMSG(1,(L"# hook CreateProcess OK\r\n", FALSE));
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
+				}
+				else{
+					DEBUGMSG(1,(L"# hook CreateProcess FAILED. LastError=%i (0x%x)\r\n", GetLastError(), GetLastError()));
+				}
+				DEBUGMSG(1,(L"# hook processed_key is TRUE\r\n", FALSE));
+			}
+			if(kMap[i].KeyForward==0)
+				return FALSE;
+			else
+				return TRUE;
+		}
+	}
+	return TRUE; //no match
 }

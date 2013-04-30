@@ -6,6 +6,15 @@ Install a keyboard hook and send Function key presses directly to Internet Explo
 or IntermecHTML5 window.
 
 history:
+v3.4.0
+	added registry code and code to start process if F12 is pressed
+			[HKEY_LOCAL_MACHINE\SOFTWARE\Intermec\iHookIN5]
+			"ForwardKey"=hex:0
+			"arg0"=""
+			"exe0"="\\windows\\iRotateCN2.exe"
+			"key0"=hex:\
+				  72	
+			"forwardKey0"=0
 v3.3.0
 	started with a inHTML5 only version
 	added code to ignore F1 key completely

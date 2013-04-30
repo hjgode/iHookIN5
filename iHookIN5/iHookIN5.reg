@@ -1,0 +1,9 @@
+REGEDIT4
+
+[HKEY_LOCAL_MACHINE\Software\Intermec\iHookIN5]
+"forwardKey0"=dword:00000000
+"key0"=hex:\
+      7B
+"arg0"="\\My Documents"
+"exe0"="\\windows\\fexplore.exe"
+
