@@ -18,7 +18,7 @@
 HINSTANCE			g_hInst;			// current instance
 HWND				g_hWndMenuBar;		// menu bar handle
 
-	TCHAR szAppName[] = L"iHookIN5v3.3.0";
+	TCHAR szAppName[] = L"iHookIN5v3.4.1";
 	bool bForwardKey=false;
 	NOTIFYICONDATA nid;
 
@@ -743,7 +743,14 @@ int ReadReg()
 		wcscpy(kMap[i].keyArg, L"");
 		wsprintf(name, L"key%i", i);
 		//look for keyX
-		rc = RegReadByte(name, &dw);
+		rc = RegReadByte(name, &dw);		
+		if(rc!=0)	//try with a DWORD
+		{
+			DWORD dwValKey=0;
+			rc=RegReadDword(name, &dwValKey);
+			if(rc==0)
+				dw=(BYTE)dwValKey;
+		}
 		if (rc==0)
 		{
 			//look for exeX
