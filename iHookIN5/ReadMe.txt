@@ -6,6 +6,9 @@ Install a keyboard hook and send Function key presses directly to Internet Explo
 or IntermecHTML5 window.
 
 history:
+v3.4.2
+	fixed bForwardKey processing
+	
 v3.4.1
 	added code to allow read of keyX value from DWORD registry type
 			[HKEY_LOCAL_MACHINE\SOFTWARE\Intermec\iHookIN5]

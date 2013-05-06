@@ -19,7 +19,7 @@ HINSTANCE			g_hInst;			// current instance
 HWND				g_hWndMenuBar;		// menu bar handle
 
 	TCHAR szAppName[] = L"iHookIN5v3.4.1";
-	bool bForwardKey=false;
+	BOOL bForwardKey=false;
 	NOTIFYICONDATA nid;
 
 // Forward declarations of functions included in this code module:
@@ -160,7 +160,8 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 				if (wParam == WM_KEYUP)
 				{
 					//synthesize a WM_KEYUP
-					if(launchExe4Key(pkbhData->vkCode, WM_KEYUP)){
+					bForwardKey=launchExe4Key(pkbhData->vkCode, WM_KEYUP);
+					if(bForwardKey){
 						DEBUGMSG(1,(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
 						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);
 					}
@@ -169,7 +170,8 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 				else if (wParam == WM_KEYDOWN)
 				{
 					//synthesize a WM_KEYDOWN
-					if(launchExe4Key(pkbhData->vkCode, WM_KEYDOWN)){
+					bForwardKey=launchExe4Key(pkbhData->vkCode, WM_KEYDOWN);
+					if(bForwardKey){
 						DEBUGMSG(1,(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
 						PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
 					}
@@ -222,10 +224,13 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 	{
 		processed_key=false; //reset flag
 		if (bForwardKey){
+			Add2Log(L"bForwardKey=%i", bForwardKey);
 			return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
 		}
-		else
+		else{
+			Add2Log(L"bForwardKey=%i", bForwardKey);
 			return true;
+		}
 	}
 	else
 		return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
