@@ -6,6 +6,15 @@ Install a keyboard hook and send Function key presses directly to Internet Explo
 or IntermecHTML5 window.
 
 history:
+v3.4.3
+	fixed forward key processing
+	we have a separate handling for matched keyX values and globally
+	the global forward setting is read from
+			"forwardKey"=0
+		(changed to REG_DWORD type instead of REG_BINARY)
+	whereas the keyX forward setting is read from
+			"forwardKeyX"=0
+	
 v3.4.2
 	fixed bForwardKey processing
 	

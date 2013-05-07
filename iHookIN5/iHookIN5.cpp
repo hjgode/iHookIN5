@@ -19,7 +19,7 @@ HINSTANCE			g_hInst;			// current instance
 HWND				g_hWndMenuBar;		// menu bar handle
 
 	TCHAR szAppName[] = L"iHookIN5 v3.4.3";
-	BOOL bForwardKey=false;
+	BOOL g_bForwardKey=false;
 	NOTIFYICONDATA nid;
 
 // Forward declarations of functions included in this code module:
@@ -44,7 +44,7 @@ typedef struct {
 } hookmap;
 static hookmap kMap[10];
 int lastKey=-1;
-BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg);
+BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg, BOOL* bFound);
 
 // Global variables can still be your...friend.
 // CIHookDlg* g_This			= NULL;			// Needed for this kludgy test app, allows callback to update the UI
@@ -140,6 +140,8 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 	static int iActOn = HC_ACTION;
 	bool processed_key=false;
 	int iResult=0;
+	BOOL bMatchedKey=FALSE;
+	BOOL bForwardProcessKey=FALSE;
 
 	if (nCode == iActOn) 
 	{ 
@@ -160,18 +162,28 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 				if (wParam == WM_KEYUP)
 				{
 					//synthesize a WM_KEYUP
-					bForwardKey=launchExe4Key(pkbhData->vkCode, WM_KEYUP);
-					if(bForwardKey){
+					bForwardProcessKey=launchExe4Key(pkbhData->vkCode, WM_KEYUP, &bMatchedKey);
+					if(bMatchedKey && bForwardProcessKey){//process a matched CreateProcess key?
+						DEBUGMSG(1,(L"posting PROCESS WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
+						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);						
+					}
+					else if(!bMatchedKey)
+					{
 						DEBUGMSG(1,(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
-						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);
+						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);						
 					}
 					processed_key=true;
 				}
 				else if (wParam == WM_KEYDOWN)
 				{
 					//synthesize a WM_KEYDOWN
-					bForwardKey=launchExe4Key(pkbhData->vkCode, WM_KEYDOWN);
-					if(bForwardKey){
+					bForwardProcessKey=launchExe4Key(pkbhData->vkCode, WM_KEYDOWN, &bMatchedKey);
+					if(bMatchedKey && bForwardProcessKey){
+						DEBUGMSG(1,(L"posting PROCESS WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
+						PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
+					}
+					else if(!bMatchedKey)
+					{
 						DEBUGMSG(1,(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
 						PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
 					}
@@ -213,7 +225,6 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 					//PostMessage(hwndBrowserComponent, WM_KEYDOWN, VK_COMMA, 0x00000001 );
 				}
 				processed_key=TRUE;
-				bForwardKey=FALSE;
 			}
 		}
 	}//nCode == iActOn
@@ -224,12 +235,17 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 	if (processed_key)
 	{
 		processed_key=false; //reset flag
-		if (bForwardKey){
-			Add2Log(L"bForwardKey=%i", bForwardKey);
+		if (g_bForwardKey){
+			Add2Log(L"g_bForwardKey=%i", g_bForwardKey);
 			return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
 		}
-		else{
-			Add2Log(L"bForwardKey=%i", bForwardKey);
+		else if(bMatchedKey && bForwardProcessKey) {
+			Add2Log(L"bMatchedKey=%i bForwardProcessKey=%i", bMatchedKey, bForwardProcessKey);
+			return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
+		}
+		else
+		{
+			Add2Log(L"g_bForwardKey=%i", g_bForwardKey);
 			return true;
 		}
 	}
@@ -739,6 +755,8 @@ int ReadReg()
 	int i;
 	TCHAR str[MAX_PATH+1];
 	byte dw=0;
+	DWORD dword=0;
+
 	TCHAR name[MAX_PATH+1];
 	lastKey=-1;
 	LONG rc;
@@ -810,17 +828,17 @@ int ReadReg()
 	}
 	Add2Log(L"\tread a total of %i (0x%x) valid entries\r\n", lastKey+1, lastKey+1);
 	//Read if we have to forward the keys
-	rc=RegReadByte(L"ForwardKey", &dw);
+	rc=RegReadDword(L"ForwardKey", &dword);
 	if(rc==0)
 	{
 		Add2Log(L"\tlooking for 'ForwardKey' OK\r\n",lastKey,lastKey);
-		if (dw>0){
+		if (dword>0){
 			Add2Log(L"\tForwardKey is TRUE \r\n", FALSE);
-			bForwardKey=true;
+			g_bForwardKey=true;
 		}
 		else{
 			Add2Log(L"\tForwardKey is FALSE \r\n", FALSE);
-			bForwardKey=false;
+			g_bForwardKey=false;
 		}
 	}
 	else
@@ -829,7 +847,7 @@ int ReadReg()
 			ShowError(rc);
 		#endif
 		Add2Log(L"\tlooking for 'ForwardKey' FAILED. Using default=TRUE.\r\n", FALSE);
-		bForwardKey=true;
+		g_bForwardKey=true;
 	}
 	CloseKey();
 	Add2Log(L"OUT ReadReg()...\r\n", FALSE);
@@ -838,8 +856,10 @@ int ReadReg()
 
 //check if exe is to launch for key
 //return TRUE if key should be forwarded
-BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg){
+//bFound is used to report if a key is a CreateProcess key
+BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg, BOOL* bFound){
 	PROCESS_INFORMATION pi;
+	BOOL bForwardTheKey=FALSE;
 	int i=0;
 	DEBUGMSG(1, (L"# hook got 0x%02x (%i). Looking for match...\r\n", vkCode, vkCode));
 	BOOL bMatchFound=FALSE;
@@ -864,10 +884,11 @@ BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg){
 				DEBUGMSG(1,(L"# hook processed_key is TRUE\r\n", FALSE));
 			}
 			if(kMap[i].KeyForward==0)
-				return FALSE;
+				bForwardTheKey = FALSE;
 			else
-				return TRUE;
+				bForwardTheKey = TRUE;
 		}
 	}
-	return TRUE; //no match
+	*bFound=bMatchFound;
+	return bForwardTheKey; //should the key be forwarded
 }
