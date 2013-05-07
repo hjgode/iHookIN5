@@ -42,8 +42,8 @@ IDI_ICON_WARN           ICON                    "ico00002.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,4,2,0
- PRODUCTVERSION 3,4,2,0
+ FILEVERSION 3,4,3,0
+ PRODUCTVERSION 3,4,3,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -59,12 +59,12 @@ BEGIN
         BLOCK "040704b0"
         BEGIN
             VALUE "FileDescription", "iHookIN5 Application"
-            VALUE "FileVersion", "3, 4, 2, 0"
+            VALUE "FileVersion", "3, 4, 3, 0"
             VALUE "InternalName", "iHookIN5"
             VALUE "LegalCopyright", "Copyright (C) 2013"
             VALUE "OriginalFilename", "iHookIN5.exe"
             VALUE "ProductName", "iHookIN5 Application"
-            VALUE "ProductVersion", "3, 4, 2, 0"
+            VALUE "ProductVersion", "3, 4, 3, 0"
         END
     END
     BLOCK "VarFileInfo"

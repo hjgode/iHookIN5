@@ -96,7 +96,7 @@ int RegReadByte(TCHAR *valuename, byte *value)
 //RegReadDword
 int RegReadDword(TCHAR *valuename, DWORD* value)
 {
-	DWORD* dwResult;
+	DWORD* dwResult=(DWORD*)malloc(sizeof(DWORD));
 	LONG rc;
 	DWORD dwType=REG_DWORD;
 	DWORD dwSize=sizeof(DWORD);
@@ -109,11 +109,13 @@ int RegReadDword(TCHAR *valuename, DWORD* value)
 		{
 			CloseKey();
 			memcpy(value, dwResult, sizeof(dwResult));
+			free(dwResult);
 			//value = dwResult;
 			return rc;
 		}
 	}
 	CloseKey();
+	free(dwResult);
 	return rc;
 }
 

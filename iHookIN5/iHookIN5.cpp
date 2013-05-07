@@ -18,7 +18,7 @@
 HINSTANCE			g_hInst;			// current instance
 HWND				g_hWndMenuBar;		// menu bar handle
 
-	TCHAR szAppName[] = L"iHookIN5v3.4.1";
+	TCHAR szAppName[] = L"iHookIN5 v3.4.3";
 	BOOL bForwardKey=false;
 	NOTIFYICONDATA nid;
 
@@ -207,12 +207,13 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 					keybd_event(VK_COMMA, 0x00, KEYEVENTF_KEYUP | 0, 0);
 					//PostMessage(hwndBrowserComponent , WM_CHAR, 0x2c,   0x00000001);
 					//PostMessage(hwndBrowserComponent , WM_KEYUP, VK_COMMA,   0xC0000001);
-					processed_key=TRUE;
+					
 				}else if(wParam==WM_KEYDOWN){
 					keybd_event(VK_COMMA, 0x00, 0, 0);
 					//PostMessage(hwndBrowserComponent, WM_KEYDOWN, VK_COMMA, 0x00000001 );
-					processed_key=TRUE;
 				}
+				processed_key=TRUE;
+				bForwardKey=FALSE;
 			}
 		}
 	}//nCode == iActOn
@@ -370,7 +371,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     // SHInitExtraControls should be called once during your application's initialization to initialize any
     // of the device specific controls such as CAPEDIT and SIPPREF.
-    SHInitExtraControls();
+    //SHInitExtraControls();
+
 	wsprintf(szTitle, L"%s", L"iHookIN5");
 	wsprintf(szWindowClass, L"%s", L"iHookIN5");
 
@@ -390,11 +392,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     if (!MyRegisterClass(hInstance, szWindowClass))
     {
+		DEBUGMSG(1, (L"Already running? %i", GetLastError()));
     	return FALSE;
     }
 
-    hWnd = CreateWindow(szWindowClass, szTitle, WS_VISIBLE,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+		hWnd = CreateWindow(szWindowClass, szTitle, WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+		DEBUGMSG(1, (L"CreateWindow: %i", GetLastError()));
 
     if (!hWnd)
     {
@@ -500,7 +503,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				MessageBeep(MB_OK);
 				//system bar icon
 				//ShowIcon(hWnd, g_hInst);
-				DEBUGMSG(1, (L"Hook loaded OK"));
+				DEBUGMSG(1, (L"Hook loaded OK\n"));
 			}
 			else
 			{
