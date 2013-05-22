@@ -18,7 +18,7 @@
 HINSTANCE			g_hInst;			// current instance
 HWND				g_hWndMenuBar;		// menu bar handle
 
-	TCHAR szAppName[] = L"iHookIN5 v3.4.3";
+	TCHAR szAppName[] = L"iHookIN5 v3.4.4";
 	BOOL g_bForwardKey=false;
 	NOTIFYICONDATA nid;
 
@@ -147,15 +147,17 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 	{ 
 		PKBDLLHOOKSTRUCT pkbhData = (PKBDLLHOOKSTRUCT)lParam;
 		HWND hwndBrowserComponent=getTargetWindow();//FindWindow(L"KeyTest3AK",L"KeyTest3AK");
-		if(hwndBrowserComponent==NULL)	// if IE is not loaded or not in foreground or browser window not found
+		if(hwndBrowserComponent==NULL){	// if IE is not loaded or not in foreground or browser window not found
 			return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
-
+		}
 		//we are only interested in FKey press/release
 		if(pkbhData->vkCode >= VK_F1 && pkbhData->vkCode <=VK_F24){
-			DEBUGMSG(1,(L"found function key 0x%08x ...\n", pkbhData->vkCode));
+			DEBUGMSG(1,(L"found function key 0x%08x ...\r\n", pkbhData->vkCode));
+			Add2Log(L"found function key 0x%08x ...\r\n", pkbhData->vkCode);
 			if( (pkbhData->vkCode==VK_F1) ) // || (pkbhData->vkCode==VK_F2) )
 			{
-				DEBUGMSG(1,(L"F1 is ignored\n"));
+				DEBUGMSG(1,(L"F1 is ignored\r\n"));
+				Add2Log(L"F1 is ignored\r\n");
 				return true;	//just ignore F1 key
 			}
 			if(processed_key==false){
@@ -164,12 +166,14 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 					//synthesize a WM_KEYUP
 					bForwardProcessKey=launchExe4Key(pkbhData->vkCode, WM_KEYUP, &bMatchedKey);
 					if(bMatchedKey && bForwardProcessKey){//process a matched CreateProcess key?
-						DEBUGMSG(1,(L"posting PROCESS WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
+						DEBUGMSG(1,(L"posting PROCESS WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
+						Add2Log(L"posting PROCESS WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]);
 						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);						
 					}
 					else if(!bMatchedKey)
 					{
-						DEBUGMSG(1,(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
+						DEBUGMSG(1,(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]));
+						Add2Log(L"posting WM_KEYUP 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeUp[pkbhData->vkCode - 0x70]);
 						PostMessage(hwndBrowserComponent, WM_KEYUP, pkbhData->vkCode, g_lparamCodeUp[pkbhData->vkCode - 0x70]);						
 					}
 					processed_key=true;
@@ -179,27 +183,32 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 					//synthesize a WM_KEYDOWN
 					bForwardProcessKey=launchExe4Key(pkbhData->vkCode, WM_KEYDOWN, &bMatchedKey);
 					if(bMatchedKey && bForwardProcessKey){
-						DEBUGMSG(1,(L"posting PROCESS WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
+						DEBUGMSG(1,(L"posting PROCESS WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
+						Add2Log(L"posting PROCESS WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
 						PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
 					}
 					else if(!bMatchedKey)
 					{
-						DEBUGMSG(1,(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
+						DEBUGMSG(1,(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]));
+						Add2Log(L"posting WM_KEYDOWN 0x%08x to 0x%08x, lParam=0x%08x...\r\n", pkbhData->vkCode, hwndBrowserComponent, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
 						PostMessage(hwndBrowserComponent, WM_KEYDOWN, pkbhData->vkCode, g_lparamCodeDown[pkbhData->vkCode - 0x70]);
 					}
 					processed_key=true;
 				}
 				else if (wParam == WM_CHAR)	//this will never happen
 				{
-					DEBUGMSG(1, (L"WM_CHAR: 0x%x\n", pkbhData->vkCode));
+					DEBUGMSG(1, (L"WM_CHAR: 0x%x\r\n", pkbhData->vkCode));
+					Add2Log(L"WM_CHAR: 0x%x\r\n", pkbhData->vkCode);
 				}
 			}
 		}
 		else if(pkbhData->vkCode==VK_TSTAR){
-			DEBUGMSG(1, (L"VK_TSTAR: 0x%x\n", pkbhData->vkCode));
+			DEBUGMSG(1, (L"VK_TSTAR: 0x%x\r\n", pkbhData->vkCode));
+			Add2Log(L"VK_TSTAR: 0x%x\r\n", pkbhData->vkCode);
 		}
 		else if(pkbhData->vkCode==VK_TPOUND){
-			DEBUGMSG(1, (L"VK_TPOUND: 0x%x\n", pkbhData->vkCode));
+			DEBUGMSG(1, (L"VK_TPOUND: 0x%x\r\n", pkbhData->vkCode));
+			Add2Log(L"VK_TPOUND: 0x%x\r\n", pkbhData->vkCode);
 		}
 		else if(pkbhData->vkCode==VK_HYPHEN){
 			//got VK_PERIOD wParam=0x100 lParam=0x1f7cfc44 
@@ -214,7 +223,8 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 			VK_PERIOD(0xbe)	c0490001
 			*/
 			if(processed_key==false){
-				DEBUGMSG(1, (L"got VK_HYPHEN wParam=0x%02x lParam=0x%02x \n", wParam, lParam));
+				DEBUGMSG(1, (L"got VK_HYPHEN wParam=0x%02x lParam=0x%02x \r\n", wParam, lParam));
+				Add2Log(L"got VK_HYPHEN wParam=0x%02x lParam=0x%02x \r\n", wParam, lParam);
 				if(wParam==WM_KEYUP){
 					keybd_event(VK_COMMA, 0x00, KEYEVENTF_KEYUP | 0, 0);
 					//PostMessage(hwndBrowserComponent , WM_CHAR, 0x2c,   0x00000001);
@@ -228,30 +238,32 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 			}
 		}
 	}//nCode == iActOn
-	else
-		DEBUGMSG(1, (L"Got unknwon action code: 0x%08x\n", nCode));
-
+	else{
+		DEBUGMSG(1, (L"Got unknwon action code: 0x%08x\r\n", nCode));
+		Add2Log(L"Got unknwon action code: 0x%08x\r\n", nCode);
+	}
 	//shall we forward processed keys?
 	if (processed_key)
 	{
 		processed_key=false; //reset flag
 		if (g_bForwardKey){
-			Add2Log(L"g_bForwardKey=%i", g_bForwardKey);
+			Add2Log(L"g_bForwardKey=%i\r\n", g_bForwardKey);
 			return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
 		}
 		else if(bMatchedKey && bForwardProcessKey) {
-			Add2Log(L"bMatchedKey=%i bForwardProcessKey=%i", bMatchedKey, bForwardProcessKey);
+			Add2Log(L"bMatchedKey=%i bForwardProcessKey=%i\r\n", bMatchedKey, bForwardProcessKey);
 			return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
 		}
 		else
 		{
-			Add2Log(L"g_bForwardKey=%i", g_bForwardKey);
+			Add2Log(L"g_bForwardKey=%i\r\n", g_bForwardKey);
 			return true;
 		}
 	}
-	else
+	else{
+		Add2Log(L"CallNextHookEx...\r\n");
 		return CallNextHookEx(g_hInstalledLLKBDhook, nCode, wParam, lParam);
-
+	}
 }
 
 BOOL g_HookActivate(HINSTANCE hInstance)
@@ -288,7 +300,7 @@ BOOL g_HookActivate(HINSTANCE hInstance)
 		UnhookWindowsHookEx = (_UnhookWindowsHookEx)GetProcAddress(g_hHookApiDLL, _T("UnhookWindowsHookEx"));
 		if(UnhookWindowsHookEx == NULL) return false;
 	}
-	//TRACE(_T("OK\nEverything loaded OK\n"));
+	//TRACE(_T("OK\nEverything loaded OK\r\n"));
 	return true;
 }
 
@@ -308,7 +320,7 @@ BOOL g_HookDeactivate()
 		FreeLibrary(g_hHookApiDLL);
 		g_hHookApiDLL = NULL;
 	}
-	//TRACE(_T("OK\nEverything unloaded OK\n"));
+	//TRACE(_T("OK\nEverything unloaded OK\r\n"));
 	return true;
 }
 
@@ -318,6 +330,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    LPTSTR    lpCmdLine,
                    int       nCmdShow)
 {
+	if(wcsstr(lpCmdLine, L"uselogging")!=NULL){
+		initFileNames();
+		bUseLogging=TRUE;
+		Add2LogWithTime(L"iHookIN5 started with logging\r\n");
+	}
+
 	MSG msg;
 
 	// Perform application initialization:
@@ -325,6 +343,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	{
 		return FALSE;
 	}
+
 
 	HACCEL hAccelTable;
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_IHOOKIE6));
@@ -408,12 +427,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     if (!MyRegisterClass(hInstance, szWindowClass))
     {
-		DEBUGMSG(1, (L"Already running? %i", GetLastError()));
+		DEBUGMSG(1, (L"Already running? %i\r\n", GetLastError()));
     	return FALSE;
     }
 
 		hWnd = CreateWindow(szWindowClass, szTitle, WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
-		DEBUGMSG(1, (L"CreateWindow: %i", GetLastError()));
+		DEBUGMSG(1, (L"CreateWindow: %i\r\n", GetLastError()));
 
     if (!hWnd)
     {
@@ -461,7 +480,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 #ifdef DEBUG
 	if (!res)
-		DEBUGMSG(1, (L"InitInstance: %i\n", GetLastError()));
+		DEBUGMSG(1, (L"InitInstance: %i\r\n", GetLastError()));
 #endif
 	
     return TRUE;
@@ -507,7 +526,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if(wParam==g_dwTimer){
 				int iResult = 0;
 				getTargetSubWindow(&iResult);
-				DEBUGMSG(1,(L"Timer: getTargetSubWindow(), iResult=%i\n", iResult));
+				DEBUGMSG(1,(L"Timer: getTargetSubWindow(), iResult=%i\r\n", iResult));
 				ChangeIcon(iResult);
 			}
 			return 0;
@@ -519,12 +538,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				MessageBeep(MB_OK);
 				//system bar icon
 				//ShowIcon(hWnd, g_hInst);
-				DEBUGMSG(1, (L"Hook loaded OK\n"));
+				DEBUGMSG(1, (L"Hook loaded OK\r\n"));
+				Add2Log("Hook loaded OK\r\n", TRUE);
 			}
 			else
 			{
 				MessageBeep(MB_ICONEXCLAMATION);
 				MessageBox(hWnd, L"Could not hook. Already running a copy of iHook3? Will exit now.", L"iHook3", MB_OK | MB_ICONEXCLAMATION);
+				Add2Log("Could not hook. Already running a copy of iHook3? Will exit now.\r\n", TRUE);
 				PostQuitMessage(-1);
 			}
 			g_uTimerId = SetTimer(hWnd, g_dwTimer, 5000, NULL);
@@ -554,7 +575,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if(true){
 				int iResult = 0;
 				getTargetSubWindow(&iResult);
-				DEBUGMSG(1,(L"Timer: getTargetSubWindow(), iResult=%i\n", iResult));
+				DEBUGMSG(1,(L"Timer: getTargetSubWindow(), iResult=%i\r\n", iResult));
 				ChangeIcon(iResult);
 			}
 			break;
@@ -576,6 +597,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			RemoveIcon(hWnd);
 			MessageBeep(MB_OK);
 			g_HookDeactivate();
+			Add2LogWithTime(L"Hook ending...\r\n");
 			//Shell_NotifyIcon(NIM_DELETE, &nid);
             PostQuitMessage(0);
             break;
@@ -657,6 +679,7 @@ void ChangeIcon(int idIcon)
     BOOL r = Shell_NotifyIcon (NIM_MODIFY, &nid);
 	if(!r){
 		DEBUGMSG(1 ,(L"Could not change taskbar icon. LastError=%i\r\n", GetLastError() ));
+		Add2Log(L"Could not change taskbar icon. LastError=%i\r\n", GetLastError());
 	}
 }
 
@@ -693,11 +716,11 @@ BOOL scanWindow(HWND hWndStart, TCHAR* szClass){
 		GetClassName(hWnd, cszClassString, MAX_PATH);
 		GetWindowText(hWnd, cszWindowString, MAX_PATH);
 
-		wsprintf(cszTemp, L"\"%s\"  \"%s\"\t0x%08x\n", cszClassString, cszWindowString, hWnd);//buf);
+		wsprintf(cszTemp, L"\"%s\"  \"%s\"\t0x%08x\r\n", cszClassString, cszWindowString, hWnd);//buf);
 		//DEBUGMSG(1, (cszTemp));
 
 		if(wcsicmp(cszClassString, szClass)==0){
-			DEBUGMSG(1 , (L"\n################### found target window, hwnd=0x%08x\n\n", hWnd));
+			DEBUGMSG(1 , (L"\n################### found target window, hwnd=0x%08x\n\r\n", hWnd));
 			//set global hwnd
 			g_hWndIN5=hWnd;	//store in global var
 			hWnd=NULL;
@@ -739,19 +762,20 @@ enum IETYPE{
 } myIETYPE;
 
 HWND getTargetWindow(){
-	//DEBUGMSG(1, (L"using hardcoded IEMobile window\n"));
+	//DEBUGMSG(1, (L"using hardcoded IEMobile window\r\n"));
 	//g_hWndIN5 = (HWND)0x7c0d28A0;
 	//return;
 
 	//TEST FOR IN HTML5 browser
 	g_hWndIN5=FindWindow(L"Intermec HTML5 Browser", NULL);
+	Add2Log(L"Target window is 0x%08x\r\n", g_hWndIN5);
 	return g_hWndIN5;	//return global var
 
 }
 
 int ReadReg()
 {
-	Add2Log(L"IN ReadReg()...\r\n", FALSE);
+	Add2Log(L"IN ReadReg()...\r\n");
 	int i;
 	TCHAR str[MAX_PATH+1];
 	byte dw=0;
@@ -868,8 +892,8 @@ BOOL launchExe4Key(DWORD vkCode, DWORD wmMsg, BOOL* bFound){
 		if (vkCode == kMap[i].keyCode)
 		{
 			bMatchFound=TRUE;
-			DEBUGMSG(1, (L"# hook Catched key 0x%0x, launching '%s'\n", kMap[i].keyCode, kMap[i].keyCmd));
-			Add2Log(L"# hook Matched key 0x%0x, launching '%s'\n", kMap[i].keyCode, kMap[i].keyCmd);
+			DEBUGMSG(1, (L"# hook Catched key 0x%0x, launching '%s'\r\n", kMap[i].keyCode, kMap[i].keyCmd));
+			Add2Log(L"# hook Matched key 0x%0x, launching '%s'\r\n", kMap[i].keyCode, kMap[i].keyCmd);
 			if(wmMsg != WM_KEYUP)	//only process keyup msg
 			{
 				if (CreateProcess(kMap[i].keyCmd, kMap[i].keyArg, NULL, NULL, NULL, 0, NULL, NULL, NULL, &pi))
