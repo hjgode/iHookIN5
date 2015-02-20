@@ -8,6 +8,9 @@
 #include "log2file.h"
 #include "registry.h"
 
+#define TARGETWINCLASS		L"HTML5 Browser"
+#define TARGETSUBWINCLASS	L"HTML5 Browser"
+
 #pragma message( "Compiling " __FILE__ )
 //TEST for IN HTML5 browser
 #pragma message ( "############### compiling for INHTML5 ######################" )
@@ -154,12 +157,12 @@ __declspec(dllexport) LRESULT CALLBACK g_LLKeyboardHookCallback(
 		if(pkbhData->vkCode >= VK_F1 && pkbhData->vkCode <=VK_F24){
 			DEBUGMSG(1,(L"found function key 0x%08x ...\r\n", pkbhData->vkCode));
 			Add2Log(L"found function key 0x%08x ...\r\n", pkbhData->vkCode);
-			if( (pkbhData->vkCode==VK_F1) ) // || (pkbhData->vkCode==VK_F2) )
-			{
-				DEBUGMSG(1,(L"F1 is ignored\r\n"));
-				Add2Log(L"F1 is ignored\r\n");
-				return true;	//just ignore F1 key
-			}
+			//if( (pkbhData->vkCode==VK_F1) ) // || (pkbhData->vkCode==VK_F2) )
+			//{
+			//	DEBUGMSG(1,(L"F1 is ignored\r\n"));
+			//	Add2Log(L"F1 is ignored\r\n");
+			//	return true;	//just ignore F1 key
+			//}
 			if(processed_key==false){
 				if (wParam == WM_KEYUP)
 				{
@@ -745,7 +748,7 @@ BOOL scanWindow(HWND hWndStart, TCHAR* szClass){
 /// else return NULL
 ///	result will be 0 or 1 or 2
 HWND getTargetSubWindow(int* iResult){
-	HWND hwnd_iem = FindWindow(L"Intermec HTML5 Browser", NULL);	// try INHTML5 window
+	HWND hwnd_iem = FindWindow(TARGETSUBWINCLASS, NULL);	// try INHTML5 window
 	if((hwnd_iem!=NULL) && (hwnd_iem==GetForegroundWindow()))
 		*iResult=2;
 	else if(hwnd_iem!=NULL)
@@ -767,7 +770,7 @@ HWND getTargetWindow(){
 	//return;
 
 	//TEST FOR IN HTML5 browser
-	g_hWndIN5=FindWindow(L"Intermec HTML5 Browser", NULL);
+	g_hWndIN5=FindWindow(TARGETWINCLASS, NULL);
 	Add2Log(L"Target window is 0x%08x\r\n", g_hWndIN5);
 	return g_hWndIN5;	//return global var
 
